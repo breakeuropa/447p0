@@ -14,8 +14,10 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <ctype.h>
 
 #define PORT "3490"  // the port users will be connecting to
+#define MAXDATASIZE 100
 
 #define BACKLOG 10   // how many pending connections queue will hold
 
@@ -53,9 +55,10 @@ int main(void)
 	int yes=1;
 	char s[INET6_ADDRSTRLEN];
 	int rv;
+	char buf[MAXDATASIZE];
 
 	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_INET;
+	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE; // use my IP
 
@@ -123,6 +126,7 @@ int main(void)
 			s, sizeof s);
 		printf("server: got connection from %s\n", s);
 
+		/*
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
 			if (send(new_fd, "Hello, world!", 13, 0) == -1)
@@ -130,6 +134,53 @@ int main(void)
 			close(new_fd);
 			exit(0);
 		}
+		*/
+		
+		int numbytes = recv(new_fd, buf, MAXDATASIZE-1, 0);
+		if (numbytes == -1)
+		{
+			perror("recv");
+			exit(1);
+		}
+		
+		buf[numbytes] = '\0';
+		
+		char result[MAXDATASIZE];
+		int separator = 0;
+		int index = 0;
+		int first = 1;
+
+		for (int i = 0; buf[i] != '\0'; i++)
+		{
+			char c = buf[i];
+			if (c == ' ' || c == '\t' || c == '\n')
+			{
+				separator = 1;
+				continue;
+			}
+			if (separator)
+			{
+				if (first)
+				{
+					result[index++] = toupper(c);
+					first = 0;
+				}
+				else
+				{
+					result[index++] = toupper(c);
+				}
+				separator = 0;
+			}
+			else
+			{
+				result[index++] = tolower(c);
+			}
+		}
+
+		result[index] = '\0';
+		send(new_fd, result, strlen(result), 0);
+		
+
 		close(new_fd);  // parent doesn't need this
 	}
 

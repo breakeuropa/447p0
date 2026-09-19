@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <string.h>
 
 #include <arpa/inet.h>
 
@@ -81,6 +82,13 @@ int main(int argc, char *argv[])
 			get_in_addr((struct sockaddr *)p->ai_addr),
 			s, sizeof s);
 	printf("client: connected to %s\n", s);
+	
+	printf("type message to send to server: ");
+
+	char input[MAXDATASIZE]; 
+	fgets(input, sizeof(input), stdin);
+	send(sockfd, input, strlen(input), 0);
+	
 
 	freeaddrinfo(servinfo); // all done with this structure
 
@@ -97,4 +105,3 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
